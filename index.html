@@ -1,0 +1,1378 @@
+<!DOCTYPE html>
+<html lang="id" class="h-full">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>KisahKu - Aplikasi Penulis Novel Bab</title>
+    
+    <!-- Mobile Web App / PWA Meta Tags for Standalone Display -->
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-title" content="KisahKu">
+    <meta name="theme-color" content="#f97316">
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='25' fill='%23f97316'/><path d='M30 25 h40 a5 5 0 0 1 5 5 v40 a5 5 0 0 1 -5 5 h-40 a5 5 0 0 1 -5 -5 v-40 a5 5 0 0 1 5 -5' fill='none' stroke='white' stroke-width='6'/><path d='M35 40 h30 M35 50 h30 M35 60 h20' stroke='white' stroke-width='5' stroke-linecap='round'/></svg>">
+    <link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='25' fill='%23f97316'/><path d='M30 25 h40 a5 5 0 0 1 5 5 v40 a5 5 0 0 1 -5 5 h-40 a5 5 0 0 1 -5 -5 v-40 a5 5 0 0 1 5 -5' fill='none' stroke='white' stroke-width='6'/><path d='M35 40 h30 M35 50 h30 M35 60 h20' stroke='white' stroke-width='5' stroke-linecap='round'/></svg>">
+
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            50: '#fff7ed',
+                            100: '#ffedd5',
+                            500: '#f97316',
+                            600: '#ea580c',
+                            700: '#c2410c',
+                        },
+                        paper: '#FAF8F5',
+                        editor: '#FFFFFF'
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        serif: ['Lora', 'Georgia', 'serif'],
+                    }
+                }
+            }
+        }
+    </script>
+
+    <!-- Google Fonts & FontAwesome -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Lora:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <!-- Mammoth JS for reading Word (.doc / .docx) files -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js"></script>
+
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #FAF8F5;
+            -webkit-tap-highlight-color: transparent;
+            user-select: none;
+        }
+
+        .font-editor {
+            font-family: 'Lora', serif;
+            user-select: text;
+        }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: rgba(0,0,0,0.03);
+        }
+        ::-webkit-scrollbar-thumb {
+            background: rgba(249, 115, 22, 0.3);
+            border-radius: 999px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: rgba(249, 115, 22, 0.6);
+        }
+
+        /* Rich Text Contenteditable styling */
+        [contenteditable]:empty:before {
+            content: attr(data-placeholder);
+            color: #9CA3AF;
+            pointer-events: none;
+            display: block;
+            font-style: italic;
+        }
+        
+        [contenteditable]:focus {
+            outline: none;
+        }
+
+        .glass-card {
+            background: rgba(255, 255, 255, 0.88);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(254, 215, 170, 0.5);
+        }
+
+        .shadow-glow {
+            box-shadow: 0 10px 25px -5px rgba(249, 115, 22, 0.15), 0 8px 10px -6px rgba(249, 115, 22, 0.1);
+        }
+
+        .no-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .no-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+    </style>
+</head>
+<body class="h-full text-slate-800 flex flex-col antialiased selection:bg-brand-100 selection:text-brand-700">
+
+    <!-- Toast Notification -->
+    <div id="toast" class="fixed top-5 left-1/2 -translate-x-1/2 z-50 transform -translate-y-20 opacity-0 transition-all duration-300 ease-out pointer-events-none w-11/12 max-w-sm">
+        <div class="bg-slate-900 text-white px-4 py-3 rounded-2xl shadow-xl flex items-center justify-between space-x-3 text-sm font-medium border border-slate-700">
+            <div class="flex items-center space-x-2.5">
+                <i id="toast-icon" class="fa-solid fa-circle-check text-brand-500 text-lg"></i>
+                <span id="toast-msg">Pesan notifikasi</span>
+            </div>
+            <button onclick="hideToast()" class="text-slate-400 hover:text-white p-1">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+        </div>
+    </div>
+
+    <!-- BULK CHAPTER UPLOAD MODAL -->
+    <div id="bulk-upload-modal" class="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 hidden">
+        <div class="bg-white w-full max-w-lg rounded-3xl p-6 shadow-2xl space-y-5 animate-in fade-in duration-200 max-h-[90vh] overflow-y-auto">
+            <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+                <div class="flex items-center space-x-3">
+                    <div class="w-10 h-10 rounded-2xl bg-brand-500 text-white flex items-center justify-center font-bold text-lg shadow-md">
+                        <i class="fa-solid fa-file-arrow-up"></i>
+                    </div>
+                    <div>
+                        <h3 class="font-extrabold text-slate-900 text-base">Upload Banyak Bab Sekaligus</h3>
+                        <p class="text-xs text-slate-500">Impor beberapa file .doc, .docx, .txt atau tempel teks sekaligus</p>
+                    </div>
+                </div>
+                <button onclick="closeBulkUploadModal()" class="text-slate-400 hover:text-slate-600 p-2">
+                    <i class="fa-solid fa-xmark text-lg"></i>
+                </button>
+            </div>
+
+            <!-- Tab Buttons for Bulk Options -->
+            <div class="flex bg-slate-100 p-1 rounded-2xl">
+                <button id="bulk-tab-files" onclick="switchBulkTab('files')" class="flex-1 py-2 text-xs font-bold rounded-xl transition-all bg-white text-brand-600 shadow-sm">
+                    <i class="fa-solid fa-files mr-1"></i> Upload File (.doc, .docx, .txt)
+                </button>
+                <button id="bulk-tab-text" onclick="switchBulkTab('text')" class="flex-1 py-2 text-xs font-bold rounded-xl transition-all text-slate-600 hover:text-slate-900">
+                    <i class="fa-solid fa-paste mr-1"></i> Tempel Teks Massal
+                </button>
+            </div>
+
+            <!-- Option 1: Multi-file Upload -->
+            <div id="bulk-panel-files" class="space-y-4">
+                <div class="border-2 border-dashed border-brand-200 bg-brand-50/50 rounded-2xl p-6 text-center space-y-3">
+                    <i class="fa-solid fa-cloud-arrow-up text-4xl text-brand-500"></i>
+                    <div>
+                        <p class="text-xs font-bold text-slate-800">Pilih Beberapa File Word (.doc, .docx) atau Teks (.txt)</p>
+                        <p class="text-[11px] text-slate-500">Judul file akan otomatis dijadikan Judul Bab</p>
+                    </div>
+                    <input type="file" id="bulk-file-input" multiple accept=".doc,.docx,.txt" class="hidden" onchange="updateSelectedFilesCount()">
+                    <button onclick="document.getElementById('bulk-file-input').click()" class="px-4 py-2 bg-brand-500 hover:bg-brand-600 text-white text-xs font-bold rounded-xl shadow transition-all">
+                        <i class="fa-solid fa-folder-open mr-1"></i> Pilih File Dari HP/Laptop
+                    </button>
+                    <div id="file-selection-info" class="text-xs font-semibold text-brand-700 hidden"></div>
+                </div>
+                <button onclick="processMultipleFiles()" class="w-full py-3 bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white font-bold rounded-xl shadow-lg shadow-emerald-600/20 text-xs transition-all flex items-center justify-center space-x-2">
+                    <i class="fa-solid fa-floppy-disk text-sm"></i>
+                    <span>Proses & Simpan Semua Bab</span>
+                </button>
+            </div>
+
+            <!-- Option 2: Bulk Text Paste & Auto-split -->
+            <div id="bulk-panel-text" class="space-y-3 hidden">
+                <p class="text-xs text-slate-600">Tempel seluruh draf novel Anda di sini. Sistem akan otomatis memisahkannya setiap menemukan kata <strong>"Bab 1"</strong>, <strong>"Bab 2"</strong>, atau <strong>"Chapter 1"</strong> dst.</p>
+                <textarea id="bulk-text-input" rows="8" placeholder="Contoh:&#10;Bab 1 - Awal Cerita&#10;Ini isi cerita bab 1...&#10;&#10;Bab 2 - Pertemuan&#10;Ini isi cerita bab 2..." 
+                    class="w-full bg-slate-50 border border-slate-200 rounded-2xl p-3 text-xs focus:outline-none focus:ring-2 focus:ring-brand-500 resize-none font-sans"></textarea>
+                <button onclick="processBulkTextSplit()" class="w-full py-3 bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white font-bold rounded-xl shadow-lg shadow-emerald-600/20 text-xs transition-all flex items-center justify-center space-x-2">
+                    <i class="fa-solid fa-scissors text-sm"></i>
+                    <span>Pisahkan & Simpan Langsung</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- AUTHENTICATION SCREEN -->
+    <div id="auth-screen" class="fixed inset-0 z-40 bg-gradient-to-br from-amber-50 via-orange-50 to-rose-50 flex items-center justify-center p-4">
+        <div class="w-full max-w-md">
+            <!-- App Logo / Hero Header -->
+            <div class="text-center mb-6">
+                <div class="w-20 h-20 bg-gradient-to-tr from-brand-600 to-amber-400 rounded-3xl flex items-center justify-center mx-auto shadow-glow mb-4 transform rotate-3 hover:rotate-0 transition-transform duration-300">
+                    <i class="fa-solid fa-book-open-reader text-white text-3xl"></i>
+                </div>
+                <h1 class="text-3xl font-extrabold text-slate-900 tracking-tight">KisahKu Novelist</h1>
+                <p class="text-slate-600 text-sm mt-1">Ruang Tulis Nyaman, Per Bab, Auto Save & Offline</p>
+            </div>
+
+            <!-- Auth Form Card -->
+            <div class="glass-card rounded-3xl p-6 sm:p-8 shadow-xl">
+                <!-- Toggle Tab -->
+                <div class="flex bg-slate-200/60 p-1 rounded-2xl mb-6">
+                    <button id="tab-login-btn" onclick="switchAuthTab('login')" class="flex-1 py-2.5 text-xs sm:text-sm font-semibold rounded-xl transition-all duration-200 bg-white text-slate-900 shadow-sm">
+                        Masuk
+                    </button>
+                    <button id="tab-register-btn" onclick="switchAuthTab('register')" class="flex-1 py-2.5 text-xs sm:text-sm font-semibold rounded-xl transition-all duration-200 text-slate-600 hover:text-slate-900">
+                        Daftar Baru
+                    </button>
+                </div>
+
+                <form id="auth-form" onsubmit="handleAuthSubmit(event)" class="space-y-4">
+                    <div>
+                        <label class="block text-xs font-semibold uppercase tracking-wider text-slate-500 mb-1.5">Alamat Email</label>
+                        <div class="relative">
+                            <i class="fa-solid fa-envelope absolute left-4 top-1/2 -translate-y-1/2 text-slate-400"></i>
+                            <input type="email" id="auth-email" required placeholder="penulis@novel.com" 
+                                class="w-full pl-11 pr-4 py-3 bg-white/80 border border-slate-200 rounded-2xl text-sm focus:ring-2 focus:ring-brand-500 focus:border-brand-500 transition-all outline-none">
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-semibold uppercase tracking-wider text-slate-500 mb-1.5">Kata Sandi</label>
+                        <div class="relative">
+                            <i class="fa-solid fa-lock absolute left-4 top-1/2 -translate-y-1/2 text-slate-400"></i>
+                            <input type="password" id="auth-password" required placeholder="••••••••" minlength="6"
+                                class="w-full pl-11 pr-4 py-3 bg-white/80 border border-slate-200 rounded-2xl text-sm focus:ring-2 focus:ring-brand-500 focus:border-brand-500 transition-all outline-none">
+                        </div>
+                    </div>
+
+                    <button type="submit" id="auth-submit-btn" 
+                        class="w-full py-3.5 bg-gradient-to-r from-brand-500 to-brand-600 hover:from-brand-600 hover:to-brand-700 text-white font-semibold rounded-2xl shadow-lg shadow-brand-500/25 active:scale-[0.98] transition-all flex items-center justify-center space-x-2 text-sm mt-2">
+                        <span>Masuk ke Ruang Tulis</span>
+                        <i class="fa-solid fa-arrow-right text-xs"></i>
+                    </button>
+                </form>
+
+                <!-- Guest / Quick Access -->
+                <div class="mt-6 pt-4 border-t border-slate-200/80 text-center flex flex-col items-center space-y-2">
+                    <button onclick="loginAsGuest()" class="text-xs text-brand-600 hover:text-brand-700 font-semibold inline-flex items-center space-x-1.5 py-1 px-3 rounded-lg hover:bg-brand-50 transition-colors">
+                        <i class="fa-solid fa-user-ninja"></i>
+                        <span>Coba Mode Tamu (Tanpa Login)</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- MAIN APP WRAPPER -->
+    <div id="main-app" class="hidden flex-1 flex flex-col h-full max-w-5xl mx-auto w-full bg-paper overflow-hidden shadow-2xl border-x border-orange-100">
+        
+        <!-- App Top Navigation Bar -->
+        <header class="bg-white/90 backdrop-blur-md border-b border-orange-100 px-3 sm:px-4 py-2.5 sticky top-0 z-30 flex items-center justify-between">
+            <div class="flex items-center space-x-2.5 overflow-hidden">
+                <button onclick="showSlide('title-slide')" class="p-2 rounded-xl bg-orange-50 text-brand-600 hover:bg-orange-100 active:scale-95 transition-all flex-shrink-0" title="Slide Utama Novel">
+                    <i class="fa-solid fa-book text-lg"></i>
+                </button>
+                <div class="truncate">
+                    <h2 id="header-novel-title" class="font-bold text-slate-900 text-sm sm:text-base truncate">Judul Novel Belum Diisi</h2>
+                    <p id="header-subtitle" class="text-[11px] sm:text-xs text-slate-500 flex items-center space-x-1.5">
+                        <span id="active-user-badge" class="truncate max-w-[100px] sm:max-w-[160px]"><i class="fa-solid fa-user text-slate-400 mr-1"></i>Penulis</span>
+                        <span>•</span>
+                        <span id="save-status" class="text-emerald-600 font-medium flex items-center">
+                            <i class="fa-solid fa-cloud-check mr-1"></i> Tersimpan
+                        </span>
+                    </p>
+                </div>
+            </div>
+
+            <!-- Header Action Controls -->
+            <div class="flex items-center space-x-1.5 flex-shrink-0">
+                <button onclick="showSlide('title-slide')" id="btn-nav-title" class="px-2.5 py-1.5 rounded-xl text-xs font-semibold bg-orange-100 text-brand-700 hover:bg-orange-200 transition-colors flex items-center space-x-1">
+                    <i class="fa-solid fa-sliders"></i>
+                    <span class="hidden sm:inline">Info Novel</span>
+                </button>
+                <button onclick="showSlide('editor-slide')" id="btn-nav-chapter" class="px-2.5 py-1.5 rounded-xl text-xs font-semibold bg-brand-500 text-white shadow-md shadow-brand-500/20 hover:bg-brand-600 transition-colors flex items-center space-x-1">
+                    <i class="fa-solid fa-feather-pointed"></i>
+                    <span>Tulis Bab</span>
+                </button>
+                <button onclick="logout()" class="p-2 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-xl transition-colors" title="Keluar">
+                    <i class="fa-solid fa-right-from-bracket"></i>
+                </button>
+            </div>
+        </header>
+
+        <!-- SLIDE 1: NOVEL TITLE & OVERVIEW SLIDE -->
+        <section id="slide-title" class="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8 space-y-6">
+            <div class="max-w-2xl mx-auto space-y-6">
+
+                <!-- Novel Selection & Creation Toolbar -->
+                <div class="bg-white rounded-3xl p-4 sm:p-5 border border-orange-100 shadow-sm flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
+                    <div class="flex items-center space-x-3 flex-1 min-w-0">
+                        <div class="w-10 h-10 rounded-2xl bg-orange-100 text-brand-600 flex items-center justify-center font-bold text-lg flex-shrink-0">
+                            <i class="fa-solid fa-layer-group"></i>
+                        </div>
+                        <div class="flex-1 min-w-0">
+                            <label for="novel-select-dropdown" class="block text-[11px] font-bold uppercase tracking-wider text-slate-400">Pilih Novel</label>
+                            <select id="novel-select-dropdown" onchange="switchNovel(this.value)" class="w-full bg-slate-50 border border-slate-200 text-slate-800 text-sm font-semibold rounded-xl px-2.5 py-1.5 focus:outline-none focus:ring-2 focus:ring-brand-500">
+                                <!-- Dynamic novel options -->
+                            </select>
+                        </div>
+                    </div>
+                    <div class="flex items-center space-x-2">
+                        <button onclick="addNewNovel()" class="flex-1 sm:flex-none px-4 py-2.5 bg-brand-500 hover:bg-brand-600 active:scale-95 text-white text-xs font-semibold rounded-xl transition-all shadow-md shadow-brand-500/20 flex items-center justify-center space-x-1.5">
+                            <i class="fa-solid fa-plus"></i>
+                            <span>Novel Baru</span>
+                        </button>
+                        <button onclick="confirmDeleteNovel()" id="btn-delete-novel" class="px-3 py-2.5 bg-slate-100 hover:bg-rose-50 text-slate-500 hover:text-rose-600 text-xs font-semibold rounded-xl transition-all" title="Hapus Novel Ini">
+                            <i class="fa-solid fa-trash-can"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Novel Hero Card -->
+                <div class="bg-gradient-to-br from-amber-500 via-brand-500 to-rose-500 rounded-3xl p-6 sm:p-8 text-white shadow-xl relative overflow-hidden">
+                    <div class="absolute -right-8 -bottom-8 opacity-15 text-9xl pointer-events-none">
+                        <i class="fa-solid fa-book-bookmark"></i>
+                    </div>
+                    
+                    <div class="relative z-10 space-y-4">
+                        <span class="inline-block px-3 py-1 rounded-full bg-white/20 backdrop-blur-md text-xs font-semibold tracking-wider uppercase">
+                            <i class="fa-solid fa-pen-nib mr-1"></i> Sampul & Informasi Utama
+                        </span>
+                        <div>
+                            <label class="block text-xs uppercase font-medium text-amber-100 mb-1">Judul Utama Novel</label>
+                            <input type="text" id="input-novel-title" oninput="updateNovelMeta()" placeholder="Ketik Judul Novel Anda..." 
+                                class="w-full bg-white/10 backdrop-blur-md border border-white/20 rounded-2xl px-4 py-3 text-2xl sm:text-3xl font-extrabold text-white placeholder-amber-100/60 focus:outline-none focus:ring-2 focus:ring-white">
+                        </div>
+                        <div>
+                            <label class="block text-xs uppercase font-medium text-amber-100 mb-1">Nama Penulis / Pseudonym</label>
+                            <input type="text" id="input-author-name" oninput="updateNovelMeta()" placeholder="Nama Penulis..." 
+                                class="w-full bg-white/10 backdrop-blur-md border border-white/20 rounded-2xl px-4 py-2 text-sm text-white placeholder-amber-100/60 focus:outline-none focus:ring-2 focus:ring-white">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Novel Statistics Dashboard -->
+                <div class="grid grid-cols-3 gap-3 sm:gap-4">
+                    <div class="bg-white p-4 rounded-2xl border border-orange-100 shadow-sm text-center">
+                        <div class="text-2xl font-bold text-brand-600" id="stat-chapter-count">0</div>
+                        <div class="text-xs text-slate-500 font-medium mt-0.5">Total Bab</div>
+                    </div>
+                    <div class="bg-white p-4 rounded-2xl border border-orange-100 shadow-sm text-center">
+                        <div class="text-2xl font-bold text-emerald-600" id="stat-word-count">0</div>
+                        <div class="text-xs text-slate-500 font-medium mt-0.5">Total Kata</div>
+                    </div>
+                    <div class="bg-white p-4 rounded-2xl border border-orange-100 shadow-sm text-center">
+                        <div class="text-2xl font-bold text-indigo-600" id="stat-char-count">0</div>
+                        <div class="text-xs text-slate-500 font-medium mt-0.5">Karakter</div>
+                    </div>
+                </div>
+
+                <!-- Novel Meta Info Card -->
+                <div class="bg-white rounded-3xl p-6 border border-orange-100 shadow-sm space-y-4">
+                    <h3 class="font-bold text-slate-900 text-lg flex items-center space-x-2">
+                        <i class="fa-solid fa-align-left text-brand-500"></i>
+                        <span>Sinopsis & Genre Novel</span>
+                    </h3>
+
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-500 uppercase mb-1">Genre</label>
+                        <input type="text" id="input-novel-genre" oninput="updateNovelMeta()" placeholder="Contoh: Romance, Fantasy, Misteri, Sci-Fi..." 
+                            class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500">
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-500 uppercase mb-1">Sinopsis Ringkas</label>
+                        <textarea id="input-novel-synopsis" oninput="updateNovelMeta()" rows="4" placeholder="Tuliskan ringkasan alur cerita novel Anda di sini..." 
+                            class="w-full bg-slate-50 border border-slate-200 rounded-xl p-3.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 resize-none"></textarea>
+                    </div>
+                </div>
+
+                <!-- Start Writing Action Button -->
+                <div class="pt-2 pb-6">
+                    <button onclick="showSlide('editor-slide')" class="w-full py-4 bg-gradient-to-r from-brand-500 to-amber-500 hover:from-brand-600 hover:to-amber-600 text-white font-bold rounded-2xl shadow-xl shadow-brand-500/20 active:scale-[0.99] transition-all flex items-center justify-center space-x-3 text-base">
+                        <i class="fa-solid fa-feather"></i>
+                        <span>Buka Penulisan Bab Novel</span>
+                        <i class="fa-solid fa-chevron-right text-sm"></i>
+                    </button>
+                </div>
+            </div>
+        </section>
+
+        <!-- SLIDE 2: PER-CHAPTER WRITING EDITOR WORKSPACE -->
+        <section id="slide-editor" class="hidden flex-1 flex flex-col md:flex-row h-full overflow-hidden bg-white">
+            
+            <!-- VERTICAL CHAPTER SIDEBAR / NAVIGATION PANEL -->
+            <div class="w-full md:w-64 lg:w-72 flex-shrink-0 border-b md:border-b-0 md:border-r border-orange-100 bg-gradient-to-b from-amber-50/60 to-orange-50/30 flex flex-col max-h-[35vh] md:max-h-full">
+                <!-- Vertical Sidebar Header -->
+                <div class="p-3 border-b border-orange-100/80 bg-white/70 backdrop-blur-sm flex items-center justify-between">
+                    <div class="flex items-center space-x-2">
+                        <i class="fa-solid fa-list-ol text-brand-500 text-sm"></i>
+                        <span class="font-extrabold text-slate-800 text-xs sm:text-sm uppercase tracking-wider">Daftar Bab</span>
+                    </div>
+                    <div class="flex items-center space-x-1.5">
+                        <button onclick="addNewChapter()" class="px-2.5 py-1.5 rounded-xl bg-brand-500 hover:bg-brand-600 text-white text-xs font-semibold shadow-sm transition-all flex items-center space-x-1">
+                            <i class="fa-solid fa-plus text-xs"></i>
+                            <span>Tambah</span>
+                        </button>
+                        <button onclick="toggleMobileChapterList()" class="md:hidden p-1.5 text-slate-500 hover:text-slate-800 rounded-lg">
+                            <i id="toggle-chapter-icon" class="fa-solid fa-chevron-down text-xs"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Vertical Chapter List Container -->
+                <div id="chapter-list-wrapper" class="flex-1 overflow-y-auto p-2.5 space-y-1.5">
+                    <div id="chapter-tabs-container" class="flex flex-col space-y-1.5 w-full">
+                        <!-- Vertical chapter items inserted dynamically -->
+                    </div>
+                    
+                    <!-- Vertical Quick Add & Bulk Upload Action Cards -->
+                    <div class="pt-2 space-y-1.5 border-t border-orange-100/60 mt-2">
+                        <button onclick="addNewChapter()" class="w-full py-2 px-3 rounded-xl border border-dashed border-brand-300 hover:border-brand-500 text-brand-600 hover:bg-brand-50/60 text-xs font-semibold transition-all flex items-center justify-center space-x-2">
+                            <i class="fa-solid fa-plus-circle"></i>
+                            <span>+ Buat Bab Baru</span>
+                        </button>
+                        <button onclick="openBulkUploadModal()" class="w-full py-2 px-3 rounded-xl bg-orange-100/70 hover:bg-orange-200/70 text-brand-700 text-xs font-semibold transition-all flex items-center justify-center space-x-2">
+                            <i class="fa-solid fa-file-arrow-up"></i>
+                            <span>Impor Banyak Bab (.doc/.txt)</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- EDITOR MAIN WORKSPACE -->
+            <div class="flex-1 flex flex-col h-full overflow-hidden bg-white">
+                <!-- Active Chapter Controls & Quick Copy Bar -->
+                <div class="px-4 py-2.5 bg-slate-50 border-b border-slate-100 flex items-center justify-between flex-wrap gap-2">
+                    <div class="flex items-center space-x-2 flex-1 min-w-[180px]">
+                        <i class="fa-solid fa-bookmark text-brand-500 text-sm"></i>
+                        <input type="text" id="chapter-title-input" oninput="updateCurrentChapterTitle()" placeholder="Judul Bab (cth: Bab 1 - Pertemuan)" 
+                            class="bg-transparent font-bold text-slate-800 text-sm sm:text-base border-b border-transparent hover:border-slate-300 focus:border-brand-500 focus:bg-white px-1.5 py-0.5 rounded outline-none w-full transition-all">
+                    </div>
+
+                    <!-- Copy & Delete Action Buttons & Quick Counter -->
+                    <div class="flex items-center space-x-2">
+                        <span id="chapter-word-count-badge" class="text-xs bg-slate-100 text-slate-700 px-3 py-1 rounded-full font-semibold border border-slate-200 flex items-center space-x-1.5">
+                            <span id="chapter-stat-words">0 kata</span>
+                            <span class="text-slate-300">•</span>
+                            <span id="chapter-stat-chars">0 karakter</span>
+                        </span>
+
+                        <!-- AUTOMATIC COPY BUTTON PER CHAPTER -->
+                        <button onclick="copyChapterContent()" class="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white rounded-xl text-xs font-semibold transition-all shadow-sm flex items-center space-x-1.5" title="Salin otomatis isi bab ini">
+                            <i class="fa-solid fa-copy"></i>
+                            <span>Copy Bab</span>
+                        </button>
+
+                        <button onclick="confirmDeleteChapter()" class="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-xl transition-colors" title="Hapus Bab Ini">
+                            <i class="fa-solid fa-trash-can text-sm"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Formatting Toolbar (Sticky) & Live Word/Char Stats -->
+                <div class="bg-white border-b border-slate-200 px-3 py-2 flex items-center justify-between gap-2 overflow-x-auto no-scrollbar shadow-inner">
+                    <div class="flex items-center space-x-1 flex-shrink-0">
+                        <button onclick="formatText('bold')" class="p-2 w-9 h-9 flex items-center justify-center rounded-xl hover:bg-brand-50 hover:text-brand-600 text-slate-700 font-bold transition-colors border border-slate-100" title="Tebal (Bold)">
+                            <i class="fa-solid fa-bold text-xs"></i>
+                        </button>
+                        <button onclick="formatText('italic')" class="p-2 w-9 h-9 flex items-center justify-center rounded-xl hover:bg-brand-50 hover:text-brand-600 text-slate-700 italic transition-colors border border-slate-100" title="Miring (Italic)">
+                            <i class="fa-solid fa-italic text-xs"></i>
+                        </button>
+                        <button onclick="formatText('underline')" class="p-2 w-9 h-9 flex items-center justify-center rounded-xl hover:bg-brand-50 hover:text-brand-600 text-slate-700 underline transition-colors border border-slate-100" title="Garis Bawah (Underline)">
+                            <i class="fa-solid fa-underline text-xs"></i>
+                        </button>
+                        <button onclick="formatText('strikeThrough')" class="p-2 w-9 h-9 flex items-center justify-center rounded-xl hover:bg-brand-50 hover:text-brand-600 text-slate-700 line-through transition-colors border border-slate-100" title="Coret (Strikethrough)">
+                            <i class="fa-solid fa-strikethrough text-xs"></i>
+                        </button>
+                        <div class="h-5 w-px bg-slate-200 mx-1"></div>
+                        <button onclick="formatText('undo')" class="p-2 w-9 h-9 flex items-center justify-center rounded-xl hover:bg-slate-100 text-slate-600 transition-colors" title="Urungkan (Undo)">
+                            <i class="fa-solid fa-rotate-left text-xs"></i>
+                        </button>
+                        <button onclick="formatText('redo')" class="p-2 w-9 h-9 flex items-center justify-center rounded-xl hover:bg-slate-100 text-slate-600 transition-colors" title="Ulangi (Redo)">
+                            <i class="fa-solid fa-rotate-right text-xs"></i>
+                        </button>
+                        <button onclick="formatText('removeFormat')" class="p-2 w-9 h-9 flex items-center justify-center rounded-xl hover:bg-slate-100 text-slate-600 transition-colors" title="Hapus Format Teks">
+                            <i class="fa-solid fa-eraser text-xs"></i>
+                        </button>
+                    </div>
+
+                    <div class="text-xs text-slate-500 font-medium px-2 whitespace-nowrap flex items-center space-x-3 flex-shrink-0 bg-slate-50 py-1 px-3 rounded-lg border border-slate-100">
+                        <span id="editor-live-stats" class="flex items-center space-x-2">
+                            <span><strong id="live-word-count" class="text-brand-600 font-bold">0</strong> Kata</span>
+                            <span class="text-slate-300">•</span>
+                            <span><strong id="live-char-count" class="text-indigo-600 font-bold">0</strong> Karakter</span>
+                        </span>
+                        <span class="text-slate-300">|</span>
+                        <span class="text-emerald-600 flex items-center text-[11px]">
+                            <i class="fa-solid fa-floppy-disk mr-1"></i>Auto Save
+                        </span>
+                    </div>
+                </div>
+
+            <!-- Rich ContentEditable Editor Canvas -->
+            <div class="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8 bg-paper">
+                <div class="max-w-2xl mx-auto min-h-[70vh] bg-white rounded-2xl shadow-sm border border-slate-200/80 p-5 sm:p-8">
+                    <div id="editor-canvas" 
+                        contenteditable="true" 
+                        oninput="onEditorInput()" 
+                        data-placeholder="Tuliskan isi bab novel Anda di sini... Gunakan menu Bold atau Italic untuk format tulisan."
+                        class="font-editor text-base sm:text-lg text-slate-800 leading-relaxed sm:leading-loose min-h-[60vh] focus:outline-none space-y-4">
+                    </div>
+                </div>
+            </div>
+
+            <!-- Mobile Quick Toolbar Footer -->
+            <div class="sm:hidden bg-white border-t border-slate-200 p-2 flex items-center justify-around text-slate-600">
+                <button onclick="formatText('bold')" class="flex flex-col items-center p-1 text-xs font-bold text-slate-700">
+                    <i class="fa-solid fa-bold text-base mb-0.5"></i>
+                    <span>Bold</span>
+                </button>
+                <button onclick="formatText('italic')" class="flex flex-col items-center p-1 text-xs italic text-slate-700">
+                    <i class="fa-solid fa-italic text-base mb-0.5"></i>
+                    <span>Italic</span>
+                </button>
+                <button onclick="copyChapterContent()" class="flex flex-col items-center p-1 text-xs text-emerald-600 font-semibold">
+                    <i class="fa-solid fa-copy text-base mb-0.5"></i>
+                    <span>Copy Bab</span>
+                </button>
+                <button onclick="addNewChapter()" class="flex flex-col items-center p-1 text-xs text-brand-600 font-semibold">
+                    <i class="fa-solid fa-plus-circle text-base mb-0.5"></i>
+                    <span>Bab Baru</span>
+                </button>
+            </div>
+        </section>
+
+    </div>
+
+    <!-- FIREBASE SDK & APP ENGINE SCRIPT -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged, signInWithCustomToken, signInAnonymously } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, doc, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        // Firebase Configuration setup
+        const firebaseConfig = typeof __firebase_config !== 'undefined' 
+            ? JSON.parse(__firebase_config) 
+            : {
+                apiKey: "demo-api-key",
+                authDomain: "demo-novel-app.firebaseapp.com",
+                projectId: "demo-novel-app",
+                storageBucket: "demo-novel-app.appspot.com",
+                messagingSenderId: "123456789",
+                appId: "1:123456789:web:demo"
+            };
+
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'novel-writer-app';
+
+        // Global State supporting multiple novels
+        window.currentUser = null;
+        window.authMode = 'login';
+        window.deferredPrompt = null;
+
+        window.appState = {
+            novels: [
+                {
+                    id: 'nov-1',
+                    title: 'Novel Pertama Saya',
+                    author: '',
+                    genre: '',
+                    synopsis: '',
+                    chapters: [
+                        { id: 'chap-1', title: 'Bab 1 - Permulaan', content: '<p>Ini adalah awal dari petualangan novel Anda. Silakan ubah teks ini dan mulai berkreasi!</p>' }
+                    ],
+                    activeChapterId: 'chap-1'
+                }
+            ],
+            activeNovelId: 'nov-1'
+        };
+
+        let autoSaveTimer = null;
+
+        // Dynamic PWA Manifest Injection
+        function injectPWAManifest() {
+            const manifestObj = {
+                name: "KisahKu - Novelist App",
+                short_name: "KisahKu",
+                start_url: window.location.href,
+                display: "standalone",
+                background_color: "#FAF8F5",
+                theme_color: "#f97316",
+                description: "Aplikasi Penulis Novel Per Bab Auto Save",
+                icons: [
+                    {
+                        src: "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='25' fill='%23f97316'/><path d='M30 25 h40 a5 5 0 0 1 5 5 v40 a5 5 0 0 1 -5 5 h-40 a5 5 0 0 1 -5 -5 v-40 a5 5 0 0 1 5 -5' fill='none' stroke='white' stroke-width='6'/><path d='M35 40 h30 M35 50 h30 M35 60 h20' stroke='white' stroke-width='5' stroke-linecap='round'/></svg>",
+                        sizes: "192x192",
+                        type: "image/svg+xml"
+                    },
+                    {
+                        src: "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='25' fill='%23f97316'/><path d='M30 25 h40 a5 5 0 0 1 5 5 v40 a5 5 0 0 1 -5 5 h-40 a5 5 0 0 1 -5 -5 v-40 a5 5 0 0 1 5 -5' fill='none' stroke='white' stroke-width='6'/><path d='M35 40 h30 M35 50 h30 M35 60 h20' stroke='white' stroke-width='5' stroke-linecap='round'/></svg>",
+                        sizes: "512x512",
+                        type: "image/svg+xml"
+                    }
+                ]
+            };
+            const stringManifest = JSON.stringify(manifestObj);
+            const blob = new Blob([stringManifest], {type: 'application/json'});
+            const manifestURL = URL.createObjectURL(blob);
+            const link = document.createElement('link');
+            link.rel = 'manifest';
+            link.href = manifestURL;
+            document.head.appendChild(link);
+        }
+
+        // Register Inline Service Worker for Standalone Mobile Experience
+        function registerServiceWorker() {
+            if ('serviceWorker' in navigator) {
+                const swCode = `
+                    self.addEventListener('install', (e) => self.skipWaiting());
+                    self.addEventListener('activate', (e) => e.waitUntil(self.clients.claim()));
+                    self.addEventListener('fetch', (e) => {
+                        // Allow app shell to load smoothly
+                    });
+                `;
+                const blob = new Blob([swCode], {type: 'application/javascript'});
+                const swUrl = URL.createObjectURL(blob);
+                navigator.serviceWorker.register(swUrl).catch(err => console.log('SW register note:', err));
+            }
+        }
+
+        // PWA Prompt Listeners
+        window.addEventListener('beforeinstallprompt', (e) => {
+            e.preventDefault();
+            window.deferredPrompt = e;
+            const container = document.getElementById('native-install-container');
+            if (container) container.classList.remove('hidden');
+        });
+
+        window.openInstallModal = function() {
+            const modal = document.getElementById('pwa-install-modal');
+            if (modal) modal.classList.remove('hidden');
+        };
+
+        window.closeInstallModal = function() {
+            const modal = document.getElementById('pwa-install-modal');
+            if (modal) modal.classList.add('hidden');
+        };
+
+        window.triggerNativeInstall = async function() {
+            if (window.deferredPrompt) {
+                window.deferredPrompt.prompt();
+                const { outcome } = await window.deferredPrompt.userChoice;
+                if (outcome === 'accepted') {
+                    showToast('Terima kasih telah menginstall KisahKu!');
+                }
+                window.deferredPrompt = null;
+                closeInstallModal();
+            }
+        };
+
+        // Function to download full standalone HTML file for direct offline phone usage
+        window.downloadAppFile = function() {
+            const htmlContent = document.documentElement.outerHTML;
+            const blob = new Blob([htmlContent], { type: 'text/html;charset=utf-8' });
+            const url = URL.createObjectURL(blob);
+            
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'KisahKu_Aplikasi_Penulis_Novel.html';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+
+            showToast('File aplikasi (.html) berhasil diunduh ke HP Anda!');
+        };
+
+        window.getActiveNovel = function() {
+            let novel = window.appState.novels.find(n => n.id === window.appState.activeNovelId);
+            if (!novel && window.appState.novels.length > 0) {
+                novel = window.appState.novels[0];
+                window.appState.activeNovelId = novel.id;
+            }
+            return novel;
+        };
+
+        window.addNewNovel = function() {
+            saveCurrentEditorContent();
+            const count = window.appState.novels.length + 1;
+            const activeAuthor = window.getActiveNovel()?.author || '';
+            
+            const newNovel = {
+                id: 'nov-' + Date.now(),
+                title: `Judul Novel Baru ${count}`,
+                author: activeAuthor,
+                genre: '',
+                synopsis: '',
+                chapters: [
+                    { id: 'chap-1', title: 'Bab 1 - Permulaan', content: '<p>Mulai menulis bab pertama untuk novel baru ini...</p>' }
+                ],
+                activeChapterId: 'chap-1'
+            };
+
+            window.appState.novels.push(newNovel);
+            window.appState.activeNovelId = newNovel.id;
+
+            renderUI();
+            triggerAutoSave();
+            showToast(`Novel baru "${newNovel.title}" telah ditambahkan!`);
+        };
+
+        window.switchNovel = function(novelId) {
+            saveCurrentEditorContent();
+            window.appState.activeNovelId = novelId;
+            renderUI();
+            showToast('Beralih ke novel yang dipilih');
+        };
+
+        window.confirmDeleteNovel = function() {
+            if (window.appState.novels.length <= 1) {
+                showToast('Minimal harus ada 1 novel dalam koleksi Anda!', 'error');
+                return;
+            }
+
+            const currentNovel = window.getActiveNovel();
+            if (confirm(`Apakah Anda yakin ingin menghapus seluruh novel "${currentNovel.title}" beserta seluruh babnya?`)) {
+                window.appState.novels = window.appState.novels.filter(n => n.id !== currentNovel.id);
+                window.appState.activeNovelId = window.appState.novels[0].id;
+                renderUI();
+                triggerAutoSave();
+                showToast('Novel telah dihapus');
+            }
+        };
+
+        // --- AUTH FUNCTIONS ---
+        window.switchAuthTab = function(mode) {
+            window.authMode = mode;
+            const loginBtn = document.getElementById('tab-login-btn');
+            const regBtn = document.getElementById('tab-register-btn');
+            const submitBtn = document.getElementById('auth-submit-btn');
+
+            if (mode === 'login') {
+                loginBtn.className = "flex-1 py-2.5 text-xs sm:text-sm font-semibold rounded-xl transition-all duration-200 bg-white text-slate-900 shadow-sm";
+                regBtn.className = "flex-1 py-2.5 text-xs sm:text-sm font-semibold rounded-xl transition-all duration-200 text-slate-600 hover:text-slate-900";
+                submitBtn.querySelector('span').textContent = 'Masuk ke Ruang Tulis';
+            } else {
+                regBtn.className = "flex-1 py-2.5 text-xs sm:text-sm font-semibold rounded-xl transition-all duration-200 bg-white text-slate-900 shadow-sm";
+                loginBtn.className = "flex-1 py-2.5 text-xs sm:text-sm font-semibold rounded-xl transition-all duration-200 text-slate-600 hover:text-slate-900";
+                submitBtn.querySelector('span').textContent = 'Daftar Akun Penulis';
+            }
+        };
+
+        window.handleAuthSubmit = async function(e) {
+            e.preventDefault();
+            const email = document.getElementById('auth-email').value.trim();
+            const password = document.getElementById('auth-password').value.trim();
+
+            if (!email || !password) {
+                showToast('Harap isi email dan kata sandi!', 'error');
+                return;
+            }
+
+            try {
+                if (window.authMode === 'register') {
+                    await createUserWithEmailAndPassword(auth, email, password);
+                    showToast('Pendaftaran berhasil! Selamat datang.');
+                } else {
+                    await signInWithEmailAndPassword(auth, email, password);
+                    showToast('Berhasil masuk!');
+                }
+            } catch (error) {
+                console.warn('Auth Error:', error.message);
+                window.currentUser = { uid: 'usr_' + btoa(email).replace(/=/g, ''), email: email };
+                onUserAuthenticated(window.currentUser);
+                showToast('Masuk dalam mode offline/demo');
+            }
+        };
+
+        window.loginAsGuest = async function() {
+            try {
+                if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+                    await signInWithCustomToken(auth, __initial_auth_token);
+                } else {
+                    await signInAnonymously(auth);
+                }
+                showToast('Masuk sebagai Tamu');
+            } catch (err) {
+                window.currentUser = { uid: 'guest_' + Date.now(), email: 'tamu@penulis.com' };
+                onUserAuthenticated(window.currentUser);
+            }
+        };
+
+        window.logout = async function() {
+            try {
+                await signOut(auth);
+            } catch (e) {
+                console.log(e);
+            }
+            window.currentUser = null;
+            document.getElementById('auth-screen').classList.remove('hidden');
+            document.getElementById('main-app').classList.add('hidden');
+            showToast('Anda telah keluar');
+        };
+
+        // Listen for Auth State Changes
+        onAuthStateChanged(auth, (user) => {
+            if (user) {
+                window.currentUser = user;
+                onUserAuthenticated(user);
+            }
+        });
+
+        async function onUserAuthenticated(user) {
+            document.getElementById('auth-screen').classList.add('hidden');
+            document.getElementById('main-app').classList.remove('hidden');
+            
+            const badge = document.getElementById('active-user-badge');
+            if (badge) badge.innerHTML = `<i class="fa-solid fa-user text-slate-400 mr-1"></i>${user.email || 'Penulis'}`;
+
+            // Load saved novel collection from Firestore
+            await loadNovelFromFirestore();
+            renderUI();
+        }
+
+        async function loadNovelFromFirestore() {
+            if (!window.currentUser) return;
+            const userId = window.currentUser.uid;
+            
+            const novelDocRef = doc(db, 'artifacts', appId, 'users', userId, 'data', 'main_novel');
+            
+            try {
+                const docSnap = await getDoc(novelDocRef);
+                if (docSnap.exists()) {
+                    const data = docSnap.data();
+                    if (data) {
+                        if (data.novels && Array.isArray(data.novels) && data.novels.length > 0) {
+                            window.appState.novels = data.novels;
+                            window.appState.activeNovelId = data.activeNovelId || data.novels[0].id;
+                        } else if (data.chapters) {
+                            window.appState.novels = [{
+                                id: 'nov-1',
+                                title: data.title || 'Novel Pertama Saya',
+                                author: data.author || '',
+                                genre: data.genre || '',
+                                synopsis: data.synopsis || '',
+                                chapters: data.chapters,
+                                activeChapterId: data.activeChapterId || data.chapters[0]?.id || 'chap-1'
+                            }];
+                            window.appState.activeNovelId = 'nov-1';
+                        }
+                    }
+                }
+            } catch (err) {
+                console.warn("Firestore fetch error (using local state):", err);
+            }
+        }
+
+        window.saveNovelToFirestore = async function() {
+            if (!window.currentUser) return;
+            const userId = window.currentUser.uid;
+            const novelDocRef = doc(db, 'artifacts', appId, 'users', userId, 'data', 'main_novel');
+
+            updateSaveStatus('saving');
+
+            try {
+                await setDoc(novelDocRef, {
+                    novels: window.appState.novels,
+                    activeNovelId: window.appState.activeNovelId,
+                    updatedAt: new Date().toISOString()
+                }, { merge: true });
+                updateSaveStatus('saved');
+            } catch (err) {
+                console.warn("Firestore save fallback:", err);
+                updateSaveStatus('saved');
+            }
+        };
+
+        function updateSaveStatus(status) {
+            const statusEl = document.getElementById('save-status');
+            if (!statusEl) return;
+            if (status === 'saving') {
+                statusEl.className = "text-amber-600 font-medium flex items-center";
+                statusEl.innerHTML = `<i class="fa-solid fa-spinner fa-spin mr-1"></i> Menyimpan...`;
+            } else {
+                statusEl.className = "text-emerald-600 font-medium flex items-center";
+                statusEl.innerHTML = `<i class="fa-solid fa-cloud-check mr-1"></i> Tersimpan`;
+            }
+        }
+
+        // --- DEBOUNCED AUTO-SAVE ---
+        window.triggerAutoSave = function() {
+            updateSaveStatus('saving');
+            clearTimeout(autoSaveTimer);
+            autoSaveTimer = setTimeout(() => {
+                window.saveNovelToFirestore();
+            }, 1200);
+        };
+
+        // --- UI RENDERING & SLIDE SWITCHING ---
+        window.showSlide = function(slideName) {
+            const slideTitle = document.getElementById('slide-title');
+            const slideEditor = document.getElementById('slide-editor');
+            const btnNavTitle = document.getElementById('btn-nav-title');
+            const btnNavChapter = document.getElementById('btn-nav-chapter');
+
+            if (slideName === 'title-slide') {
+                slideTitle.classList.remove('hidden');
+                slideEditor.classList.add('hidden');
+                btnNavTitle.className = "px-2.5 py-1.5 rounded-xl text-xs font-semibold bg-brand-500 text-white shadow-md shadow-brand-500/20 transition-colors flex items-center space-x-1";
+                btnNavChapter.className = "px-2.5 py-1.5 rounded-xl text-xs font-semibold bg-orange-100 text-brand-700 hover:bg-orange-200 transition-colors flex items-center space-x-1";
+            } else {
+                slideTitle.classList.add('hidden');
+                slideEditor.classList.remove('hidden');
+                btnNavTitle.className = "px-2.5 py-1.5 rounded-xl text-xs font-semibold bg-orange-100 text-brand-700 hover:bg-orange-200 transition-colors flex items-center space-x-1";
+                btnNavChapter.className = "px-2.5 py-1.5 rounded-xl text-xs font-semibold bg-brand-500 text-white shadow-md shadow-brand-500/20 transition-colors flex items-center space-x-1";
+            }
+        };
+
+        function renderUI() {
+            const novel = window.getActiveNovel();
+            if (!novel) return;
+
+            const selectEl = document.getElementById('novel-select-dropdown');
+            if (selectEl) {
+                selectEl.innerHTML = window.appState.novels.map(n => 
+                    `<option value="${n.id}" ${n.id === window.appState.activeNovelId ? 'selected' : ''}>${n.title || 'Judul Belum Diisi'}</option>`
+                ).join('');
+            }
+
+            document.getElementById('input-novel-title').value = novel.title || '';
+            document.getElementById('input-author-name').value = novel.author || '';
+            document.getElementById('input-novel-genre').value = novel.genre || '';
+            document.getElementById('input-novel-synopsis').value = novel.synopsis || '';
+            document.getElementById('header-novel-title').textContent = novel.title || 'Judul Novel Belum Diisi';
+
+            renderChapterTabs();
+            loadActiveChapterIntoEditor();
+            calculateStatistics();
+        }
+
+        window.updateNovelMeta = function() {
+            const novel = window.getActiveNovel();
+            if (!novel) return;
+
+            novel.title = document.getElementById('input-novel-title').value;
+            novel.author = document.getElementById('input-author-name').value;
+            novel.genre = document.getElementById('input-novel-genre').value;
+            novel.synopsis = document.getElementById('input-novel-synopsis').value;
+            
+            document.getElementById('header-novel-title').textContent = novel.title || 'Judul Novel Belum Diisi';
+            
+            const selectEl = document.getElementById('novel-select-dropdown');
+            if (selectEl && selectEl.querySelector(`option[value="${novel.id}"]`)) {
+                selectEl.querySelector(`option[value="${novel.id}"]`).textContent = novel.title || 'Judul Belum Diisi';
+            }
+
+            triggerAutoSave();
+        };
+
+        // --- CHAPTER MANAGEMENT ---
+        window.toggleMobileChapterList = function() {
+            const wrapper = document.getElementById('chapter-list-wrapper');
+            const icon = document.getElementById('toggle-chapter-icon');
+            if (wrapper.classList.contains('hidden')) {
+                wrapper.classList.remove('hidden');
+                icon.className = "fa-solid fa-chevron-up text-xs";
+            } else {
+                wrapper.classList.add('hidden');
+                icon.className = "fa-solid fa-chevron-down text-xs";
+            }
+        };
+
+        function renderChapterTabs() {
+            const container = document.getElementById('chapter-tabs-container');
+            if (!container) return;
+            container.innerHTML = '';
+
+            const novel = window.getActiveNovel();
+            if (!novel) return;
+
+            novel.chapters.forEach((chap, idx) => {
+                const isActive = chap.id === novel.activeChapterId;
+                
+                // Calculate chapter word count for badge
+                const tempDiv = document.createElement('div');
+                tempDiv.innerHTML = chap.content || '';
+                const text = (tempDiv.innerText || tempDiv.textContent || '').trim();
+                const wordCount = text ? text.split(/\s+/).length : 0;
+
+                const tabBtn = document.createElement('button');
+                
+                tabBtn.className = isActive
+                    ? "w-full text-left p-2.5 rounded-2xl bg-gradient-to-r from-brand-500 to-amber-500 text-white font-semibold text-xs shadow-md shadow-brand-500/20 transition-all flex items-center justify-between group border border-brand-400"
+                    : "w-full text-left p-2.5 rounded-2xl bg-white text-slate-700 hover:bg-orange-100/70 font-medium text-xs transition-all border border-orange-100 flex items-center justify-between group shadow-sm";
+
+                tabBtn.innerHTML = `
+                    <div class="flex items-center space-x-2.5 min-w-0 flex-1 pr-2">
+                        <span class="w-6 h-6 rounded-lg ${isActive ? 'bg-white/20 text-white' : 'bg-orange-100 text-brand-600'} flex items-center justify-center font-bold text-[10px] flex-shrink-0">${idx + 1}</span>
+                        <span class="truncate font-semibold ${isActive ? 'text-white' : 'text-slate-800'}">${chap.title || 'Bab ' + (idx + 1)}</span>
+                    </div>
+                    <span class="text-[10px] px-2 py-0.5 rounded-full flex-shrink-0 ${isActive ? 'bg-white/20 text-white' : 'bg-slate-100 text-slate-500'} font-medium">
+                        ${wordCount} kata
+                    </span>
+                `;
+
+                tabBtn.onclick = () => selectChapter(chap.id);
+                container.appendChild(tabBtn);
+            });
+        }
+
+        // --- BULK CHAPTER UPLOAD & PROCESSING ---
+        window.openBulkUploadModal = function() {
+            document.getElementById('bulk-upload-modal').classList.remove('hidden');
+        };
+
+        window.closeBulkUploadModal = function() {
+            document.getElementById('bulk-upload-modal').classList.add('hidden');
+        };
+
+        window.switchBulkTab = function(tab) {
+            const btnFiles = document.getElementById('bulk-tab-files');
+            const btnText = document.getElementById('bulk-tab-text');
+            const panelFiles = document.getElementById('bulk-panel-files');
+            const panelText = document.getElementById('bulk-panel-text');
+
+            if (tab === 'files') {
+                btnFiles.className = "flex-1 py-2 text-xs font-bold rounded-xl transition-all bg-white text-brand-600 shadow-sm";
+                btnText.className = "flex-1 py-2 text-xs font-bold rounded-xl transition-all text-slate-600 hover:text-slate-900";
+                panelFiles.classList.remove('hidden');
+                panelText.classList.add('hidden');
+            } else {
+                btnText.className = "flex-1 py-2 text-xs font-bold rounded-xl transition-all bg-white text-brand-600 shadow-sm";
+                btnFiles.className = "flex-1 py-2 text-xs font-bold rounded-xl transition-all text-slate-600 hover:text-slate-900";
+                panelText.classList.remove('hidden');
+                panelFiles.classList.add('hidden');
+            }
+        };
+
+        window.updateSelectedFilesCount = function() {
+            const input = document.getElementById('bulk-file-input');
+            const info = document.getElementById('file-selection-info');
+            if (input.files && input.files.length > 0) {
+                info.textContent = `📌 ${input.files.length} file dipilih untuk di-upload`;
+                info.classList.remove('hidden');
+            } else {
+                info.classList.add('hidden');
+            }
+        };
+
+        function textToHtmlParagraphs(str) {
+            if (!str || !str.trim()) return '<p></p>';
+            return str
+                .trim()
+                .split(/\n\s*\n/)
+                .map(p => p.trim())
+                .filter(p => p.length > 0)
+                .map(p => `<p>${p.replace(/\n/g, '<br>')}</p>`)
+                .join('');
+        }
+
+        window.processMultipleFiles = async function() {
+            const input = document.getElementById('bulk-file-input');
+            if (!input.files || input.files.length === 0) {
+                showToast('Pilih setidaknya satu file (.doc, .docx, .txt)!', 'error');
+                return;
+            }
+
+            const novel = window.getActiveNovel();
+            if (!novel) return;
+
+            saveCurrentEditorContent();
+
+            const files = Array.from(input.files);
+            // Sort files numerically by name (e.g., Bab 1, Bab 2)
+            files.sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true, sensitivity: 'base' }));
+
+            let count = 0;
+            for (const file of files) {
+                try {
+                    const ext = file.name.substring(file.name.lastIndexOf('.')).toLowerCase();
+                    const title = file.name.replace(/\.[^/.]+$/, "");
+                    let formattedHtml = '';
+
+                    if (ext === '.docx' || ext === '.doc') {
+                        const arrayBuffer = await file.arrayBuffer();
+                        if (typeof mammoth !== 'undefined') {
+                            const result = await mammoth.convertToHtml({ arrayBuffer: arrayBuffer });
+                            formattedHtml = result.value || '<p></p>';
+                        } else {
+                            const text = await file.text();
+                            formattedHtml = textToHtmlParagraphs(text);
+                        }
+                    } else {
+                        const text = await file.text();
+                        formattedHtml = textToHtmlParagraphs(text);
+                    }
+
+                    novel.chapters.push({
+                        id: 'chap-' + Date.now() + '-' + Math.random().toString(36).substring(2, 6),
+                        title: title,
+                        content: formattedHtml
+                    });
+                    count++;
+                } catch (err) {
+                    console.error("Gagal membaca file:", file.name, err);
+                }
+            }
+
+            renderChapterTabs();
+            calculateStatistics();
+            triggerAutoSave();
+            closeBulkUploadModal();
+            input.value = '';
+            document.getElementById('file-selection-info').classList.add('hidden');
+            
+            showToast(`Berhasil mengunggah & menyimpan ${count} bab baru!`);
+        };
+
+        window.processBulkTextSplit = function() {
+            const textarea = document.getElementById('bulk-text-input');
+            const rawText = textarea.value.trim();
+
+            if (!rawText) {
+                showToast('Tempelkan teks draf novel terlebih dahulu!', 'error');
+                return;
+            }
+
+            const novel = window.getActiveNovel();
+            if (!novel) return;
+
+            saveCurrentEditorContent();
+
+            // Split by chapter markers like "Bab 1", "BAB 2", "Chapter 3", etc.
+            const chapterRegex = /(?=(?:^|\n)\s*(?:Bab|BAB|Chapter|CHAPTER)\s+\d+)/g;
+            const parts = rawText.split(chapterRegex).filter(p => p.trim().length > 0);
+
+            if (parts.length === 0) {
+                showToast('Teks tidak dapat dipisahkan!', 'error');
+                return;
+            }
+
+            let addedCount = 0;
+            parts.forEach((part) => {
+                const lines = part.trim().split('\n');
+                let firstLine = lines[0].trim();
+                let bodyText = lines.slice(1).join('\n').trim();
+
+                let title = `Bab ${novel.chapters.length + addedCount + 1}`;
+                if (/^(Bab|BAB|Chapter|CHAPTER)\s+\d+/i.test(firstLine)) {
+                    title = firstLine;
+                } else {
+                    bodyText = part.trim();
+                }
+
+                const htmlContent = textToHtmlParagraphs(bodyText || firstLine);
+
+                novel.chapters.push({
+                    id: 'chap-' + Date.now() + '-' + Math.random().toString(36).substring(2, 6),
+                    title: title,
+                    content: htmlContent
+                });
+                addedCount++;
+            });
+
+            renderChapterTabs();
+            calculateStatistics();
+            triggerAutoSave();
+            closeBulkUploadModal();
+            textarea.value = '';
+
+            showToast(`Berhasil memisahkan & menyimpan ${addedCount} bab sekaligus!`);
+        };
+
+        window.selectChapter = function(chapterId) {
+            saveCurrentEditorContent();
+            const novel = window.getActiveNovel();
+            if (novel) {
+                novel.activeChapterId = chapterId;
+            }
+            renderChapterTabs();
+            loadActiveChapterIntoEditor();
+        };
+
+        window.addNewChapter = function() {
+            saveCurrentEditorContent();
+            const novel = window.getActiveNovel();
+            if (!novel) return;
+
+            const newNum = novel.chapters.length + 1;
+            const newChap = {
+                id: 'chap-' + Date.now(),
+                title: `Bab ${newNum} - Judul Bab Baru`,
+                content: `<p>Mulai menulis Bab ${newNum} di sini...</p>`
+            };
+
+            novel.chapters.push(newChap);
+            novel.activeChapterId = newChap.id;
+
+            renderChapterTabs();
+            loadActiveChapterIntoEditor();
+            triggerAutoSave();
+            showToast(`Bab ${newNum} berhasil ditambahkan`);
+        };
+
+        function getActiveChapter() {
+            const novel = window.getActiveNovel();
+            if (!novel) return null;
+            return novel.chapters.find(c => c.id === novel.activeChapterId) || novel.chapters[0];
+        }
+
+        function loadActiveChapterIntoEditor() {
+            const activeChap = getActiveChapter();
+            if (!activeChap) return;
+
+            document.getElementById('chapter-title-input').value = activeChap.title || '';
+            document.getElementById('editor-canvas').innerHTML = activeChap.content || '';
+            updateWordCountBadge();
+        }
+
+        function saveCurrentEditorContent() {
+            const activeChap = getActiveChapter();
+            if (activeChap) {
+                const editor = document.getElementById('editor-canvas');
+                activeChap.content = editor.innerHTML;
+            }
+        }
+
+        window.updateCurrentChapterTitle = function() {
+            const activeChap = getActiveChapter();
+            if (activeChap) {
+                activeChap.title = document.getElementById('chapter-title-input').value;
+                triggerAutoSave();
+            }
+        };
+
+        window.onEditorInput = function() {
+            const activeChap = getActiveChapter();
+            if (activeChap) {
+                activeChap.content = document.getElementById('editor-canvas').innerHTML;
+                updateWordCountBadge();
+                calculateStatistics();
+                triggerAutoSave();
+            }
+        };
+
+        window.confirmDeleteChapter = function() {
+            const novel = window.getActiveNovel();
+            if (!novel) return;
+
+            if (novel.chapters.length <= 1) {
+                showToast('Novel harus memiliki minimal 1 bab!', 'error');
+                return;
+            }
+
+            const activeChap = getActiveChapter();
+            if (confirm(`Apakah Anda yakin ingin menghapus "${activeChap.title}"?`)) {
+                novel.chapters = novel.chapters.filter(c => c.id !== activeChap.id);
+                novel.activeChapterId = novel.chapters[0].id;
+                renderChapterTabs();
+                loadActiveChapterIntoEditor();
+                triggerAutoSave();
+                showToast('Bab berhasil dihapus');
+            }
+        };
+
+        // --- RICH TEXT FORMATTING COMMANDS ---
+        window.formatText = function(command, value = null) {
+            document.execCommand(command, false, value);
+            document.getElementById('editor-canvas').focus();
+            onEditorInput();
+        };
+
+        // --- AUTOMATIC COPY BUTTON PER CHAPTER ---
+        window.copyChapterContent = function() {
+            saveCurrentEditorContent();
+            const activeChap = getActiveChapter();
+            if (!activeChap) return;
+
+            const tempDiv = document.createElement('div');
+            tempDiv.innerHTML = activeChap.content;
+            const plainText = `${activeChap.title}\n\n${tempDiv.innerText || tempDiv.textContent}`;
+
+            const textarea = document.createElement('textarea');
+            textarea.value = plainText;
+            textarea.style.position = 'fixed';
+            textarea.style.opacity = '0';
+            document.body.appendChild(textarea);
+            textarea.select();
+
+            try {
+                document.execCommand('copy');
+                showToast(`Isi "${activeChap.title}" berhasil disalin!`);
+            } catch (err) {
+                showToast('Gagal menyalin teks bab', 'error');
+            } finally {
+                document.body.removeChild(textarea);
+            }
+        };
+
+        // --- WORD & CHARACTER STATS ---
+        function updateWordCountBadge() {
+            const activeChap = getActiveChapter();
+            if (!activeChap) return;
+
+            const tempDiv = document.createElement('div');
+            tempDiv.innerHTML = activeChap.content || '';
+            const text = (tempDiv.innerText || tempDiv.textContent || '').trim();
+            const words = text ? text.split(/\s+/).length : 0;
+            const chars = text.length;
+
+            const statWords = document.getElementById('chapter-stat-words');
+            const statChars = document.getElementById('chapter-stat-chars');
+            if (statWords) statWords.textContent = `${words} kata`;
+            if (statChars) statChars.textContent = `${chars} karakter`;
+
+            const liveWords = document.getElementById('live-word-count');
+            const liveChars = document.getElementById('live-char-count');
+            if (liveWords) liveWords.textContent = words.toLocaleString('id-ID');
+            if (liveChars) liveChars.textContent = chars.toLocaleString('id-ID');
+
+            const badge = document.getElementById('chapter-word-count-badge');
+            if (badge && !statWords) badge.textContent = `${words} kata | ${chars} karakter`;
+        }
+
+        function calculateStatistics() {
+            const novel = window.getActiveNovel();
+            if (!novel) return;
+
+            let totalWords = 0;
+            let totalChars = 0;
+
+            novel.chapters.forEach(chap => {
+                const tempDiv = document.createElement('div');
+                tempDiv.innerHTML = chap.content || '';
+                const text = (tempDiv.innerText || tempDiv.textContent || '').trim();
+                if (text) {
+                    totalWords += text.split(/\s+/).length;
+                    totalChars += text.length;
+                }
+            });
+
+            document.getElementById('stat-chapter-count').textContent = novel.chapters.length;
+            document.getElementById('stat-word-count').textContent = totalWords.toLocaleString('id-ID');
+            document.getElementById('stat-char-count').textContent = totalChars.toLocaleString('id-ID');
+        }
+
+        // --- TOAST NOTIFICATIONS ---
+        window.showToast = function(msg, type = 'success') {
+            const toast = document.getElementById('toast');
+            const toastMsg = document.getElementById('toast-msg');
+            const toastIcon = document.getElementById('toast-icon');
+
+            toastMsg.textContent = msg;
+
+            if (type === 'error') {
+                toastIcon.className = "fa-solid fa-circle-exclamation text-rose-500 text-lg";
+            } else {
+                toastIcon.className = "fa-solid fa-circle-check text-brand-500 text-lg";
+            }
+
+            toast.classList.remove('opacity-0', '-translate-y-20', 'pointer-events-none');
+            toast.classList.add('opacity-100', 'translate-y-0');
+
+            setTimeout(() => {
+                hideToast();
+            }, 3000);
+        };
+
+        window.hideToast = function() {
+            const toast = document.getElementById('toast');
+            toast.classList.add('opacity-0', '-translate-y-20', 'pointer-events-none');
+            toast.classList.remove('opacity-100', 'translate-y-0');
+        };
+
+        // Initialize on load
+        window.addEventListener('load', () => {
+            showSlide('title-slide');
+        });
+    </script>
+</body>
+</html>
